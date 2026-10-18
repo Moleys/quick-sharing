@@ -1,0 +1,10 @@
+# File chia sẻ (nội dung data không commit)
+data/*
+!data/.gitkeep
+
+# Log & tạm
+*.log
+node_modules/
+
+# Binary cloudflared (55MB, không commit)
+cloudflared.exe

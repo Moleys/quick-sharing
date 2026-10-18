@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>⚡ Quick Share</title>
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">⚡</text></svg>'>
+<style>
+  :root {
+    --bg: #0b0f14;
+    --panel: #121821;
+    --panel-hover: #182230;
+    --border: #1f2a37;
+    --text: #e6edf3;
+    --muted: #8b98a9;
+    --accent: #4ade80;
+    --accent-soft: rgba(74, 222, 128, .12);
+    --danger: #f87171;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(11, 15, 20, .85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+  .head-wrap { display: flex; align-items: center; justify-content: space-between; height: 56px; }
+  .logo { font-size: 18px; font-weight: 700; letter-spacing: .3px; }
+
+  button, .ibtn {
+    font: inherit; color: var(--text); cursor: pointer;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 9px; transition: .15s;
+  }
+  button:hover:not(:disabled), .ibtn:hover { border-color: var(--accent); color: var(--accent); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .btn {
+    padding: 7px 14px; font-weight: 600; font-size: 14px;
+  }
+  .btn.primary { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+  .btn.primary:hover:not(:disabled) { background: rgba(74, 222, 128, .22); }
+  .btn.sq { padding: 7px 11px; }
+
+  main { padding: 20px 0 60px; }
+
+  .crumbs { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; margin-bottom: 14px; font-size: 14px; }
+  .crumb { color: var(--muted); text-decoration: none; padding: 2px 6px; border-radius: 6px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .crumb:hover { color: var(--accent); background: var(--accent-soft); }
+  .sep { color: var(--border); }
+
+  .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .spacer { flex: 1; }
+  .badge {
+    font-size: 12px; font-weight: 700; color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, .4); border-radius: 99px; padding: 2px 10px;
+  }
+  .muted { color: var(--muted); font-size: 13px; }
+
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .row {
+    display: grid; grid-template-columns: minmax(0, 1fr) 100px 165px 116px;
+    align-items: center; gap: 8px; padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .row:last-child { border-bottom: none; }
+  .row:hover { background: var(--panel-hover); }
+  .row.head {
+    font-size: 12px; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--muted); background: var(--panel-hover);
+  }
+  .name { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; min-width: 0; font-weight: 500; }
+  .name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  a.name:hover span { color: var(--accent); }
+  .size, .mtime { color: var(--muted); font-size: 13px; }
+  .acts { display: flex; gap: 6px; justify-content: flex-end; }
+  .ibtn {
+    width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px; text-decoration: none; flex: none;
+  }
+  .ibtn.danger:hover { border-color: var(--danger); color: var(--danger); }
+
+  .empty { text-align: center; color: var(--muted); padding: 60px 20px; }
+  .hint { margin-top: 14px; text-align: center; }
+
+  /* Overlay khi kéo file vào */
+  .overlay {
+    position: fixed; inset: 0; z-index: 50;
+    background: rgba(11, 15, 20, .8);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .overlay-box {
+    border: 3px dashed var(--accent); border-radius: 18px;
+    color: var(--accent); font-size: 22px; font-weight: 700;
+    padding: 60px 80px; background: var(--accent-soft);
+  }
+
+  /* Toast */
+  #toasts { position: fixed; right: 16px; bottom: 16px; z-index: 60; display: flex; flex-direction: column; gap: 8px; }
+  .toast {
+    background: var(--panel); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px; padding: 10px 14px; min-width: 240px; max-width: 340px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .4); font-size: 14px;
+    animation: pop .18s ease-out;
+  }
+  .toast.err { border-left-color: var(--danger); }
+  .toast .bar { height: 4px; background: var(--border); border-radius: 99px; margin-top: 6px; overflow: hidden; }
+  .toast .fill { height: 100%; width: 0; background: var(--accent); transition: width .15s; }
+  @keyframes pop { from { transform: translateY(8px); opacity: 0; } }
+
+  /* Modal QR */
+  .modal {
+    position: fixed; inset: 0; z-index: 70;
+    background: rgba(0, 0, 0, .6);
+    display: flex; align-items: center; justify-content: center; padding: 16px;
+  }
+  .modal-box {
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 22px; text-align: center; width: 320px; max-width: 100%;
+  }
+  .modal-box h3 { margin: 0 0 4px; }
+  #qr-img { background: #fff; border-radius: 8px; padding: 6px; margin: 14px 0; }
+  #qr-url { color: var(--muted); font-size: 13px; word-break: break-all; margin-bottom: 14px; }
+
+  @media (max-width: 640px) {
+    .row { grid-template-columns: minmax(0, 1fr) auto; }
+    .size, .mtime, .row.head .size, .row.head .mtime { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap head-wrap">
+    <div class="logo">⚡ Quick Share</div>
+    <div style="display:flex; gap:8px;">
+      <button id="btn-qr" class="btn sq" title="Hiện mã QR để mở bằng điện thoại">📱 QR</button>
+      <button id="btn-refresh" class="btn sq" title="Làm mới">⟳</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <nav id="crumbs" class="crumbs"></nav>
+
+  <div class="toolbar">
+    <button id="btn-upload" class="btn primary">⬆ Upload</button>
+    <input id="file-input" type="file" multiple hidden>
+    <span id="ro-badge" class="badge" hidden>Chỉ đọc</span>
+    <span class="spacer"></span>
+    <span id="stats" class="muted"></span>
+  </div>
+
+  <div class="panel">
+    <div class="row head">
+      <span>Tên</span><span class="size">Dung lượng</span><span class="mtime">Sửa lúc</span><span></span>
+    </div>
+    <div id="list"></div>
+  </div>
+
+  <p class="hint muted">Kéo &amp; thả file vào trang để upload · Bấm vào tên file để xem trước · ⬇ để tải về · 🔗 để copy link chia sẻ</p>
+</main>
+
+<div id="overlay" class="overlay" hidden><div class="overlay-box">📥 Buông tay để upload</div></div>
+
+<div id="qr-modal" class="modal" hidden>
+  <div class="modal-box">
+    <h3>Quét mã để mở trang này</h3>
+    <div id="qr-url"></div>
+    <img id="qr-img" alt="QR" width="240" height="240">
+    <div style="display:flex; gap:8px; justify-content:center;">
+      <button id="qr-copy" class="btn">🔗 Copy link</button>
+      <button id="qr-close" class="btn">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = (s, el) => (el || document).querySelector(s);
+
+  let cwd = '';
+  let RO = false;
+
+  const listEl = $('#list'), crumbsEl = $('#crumbs'), statsEl = $('#stats');
+  const fileInput = $('#file-input'), btnUpload = $('#btn-upload'), roBadge = $('#ro-badge');
+
+  /* ---------- Helpers ---------- */
+
+  const esc = s => String(s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  function fmtSize(n) {
+    const u = ['B', 'KB', 'MB', 'GB', 'TB'];
+    let i = 0, v = n;
+    while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+    return (i === 0 || v >= 100 ? Math.round(v) : v.toFixed(1)) + ' ' + u[i];
+  }
+
+  function fmtDate(ms) {
+    const d = new Date(ms);
+    return d.toLocaleDateString('vi-VN') + ' ' +
+      d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function iconFor(e) {
+    if (e.dir) return '📁';
+    const ext = e.name.includes('.') ? e.name.split('.').pop().toLowerCase() : '';
+    if (['png','jpg','jpeg','gif','webp','svg','bmp','ico','avif'].includes(ext)) return '🖼️';
+    if (['mp4','webm','mkv','mov','avi'].includes(ext)) return '🎬';
+    if (['mp3','wav','ogg','flac','m4a','aac'].includes(ext)) return '🎵';
+    if (ext === 'pdf') return '📕';
+    if (['zip','rar','7z','gz','tar','iso'].includes(ext)) return '📦';
+    if (['js','ts','jsx','tsx','html','css','json','xml','py','java','c','cpp','cs','go','rs','php','rb','sh','bat','ps1','yml','yaml','toml','sql'].includes(ext)) return '🧩';
+    if (['doc','docx','odt','rtf'].includes(ext)) return '📄';
+    if (['xls','xlsx','csv','ods'].includes(ext)) return '📊';
+    if (['ppt','pptx','odp'].includes(ext)) return '📽️';
+    if (['apk','exe','msi','dmg'].includes(ext)) return '⚙️';
+    if (['txt','md','log'].includes(ext)) return '📝';
+    return '📄';
+  }
+
+  const fileUrl = p => '/download?path=' + encodeURIComponent(p);
+
+  /* ---------- Toast ---------- */
+
+  const toastsEl = $('#toasts');
+  function toast(msg, isErr) {
+    const el = document.createElement('div');
+    el.className = 'toast' + (isErr ? ' err' : '');
+    el.textContent = msg;
+    toastsEl.appendChild(el);
+    setTimeout(() => el.remove(), 3200);
+    return el;
+  }
+
+  function progressToast(name) {
+    const el = document.createElement('div');
+    el.className = 'toast';
+    el.innerHTML = '<div class="t-name"></div><div class="bar"><div class="fill"></div></div>';
+    toastsEl.appendChild(el);
+    const fill = $('.fill', el), nameEl = $('.t-name', el);
+    return {
+      set(loaded, total) {
+        const pct = total ? Math.round(loaded / total * 100) : 0;
+        fill.style.width = pct + '%';
+        nameEl.textContent = name + ' — ' + pct + '%';
+      },
+      done() {
+        fill.style.width = '100%';
+        nameEl.textContent = '✓ ' + name;
+        setTimeout(() => el.remove(), 1500);
+      },
+      fail(msg) {
+        el.classList.add('err');
+        nameEl.textContent = '✗ ' + name + ' — ' + msg;
+        setTimeout(() => el.remove(), 5000);
+      },
+    };
+  }
+
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast('📋 Đã copy link');
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); toast('📋 Đã copy link'); }
+      catch { toast('Copy thất bại', true); }
+      ta.remove();
+    }
+  }
+
+  /* ---------- Render ---------- */
+
+  function renderCrumbs(cwdPath) {
+    const parts = cwdPath ? cwdPath.split('/') : [];
+    let html = '<a class="crumb" href="#">🏠 root</a>';
+    let acc = '';
+    for (const part of parts) {
+      acc = acc ? acc + '/' + part : part;
+      html += ' <span class="sep">›</span> <a class="crumb" href="#' + encodeURIComponent(acc) + '">' + esc(part) + '</a>';
+    }
+    crumbsEl.innerHTML = html;
+  }
+
+  function render(data) {
+    RO = !!data.readonly;
+    roBadge.hidden = !RO;
+    btnUpload.disabled = RO;
+    btnUpload.title = RO ? 'Server đang ở chế độ chỉ đọc' : 'Chọn file để upload';
+
+    document.title = '⚡ Quick Share — /' + (data.cwd || '');
+
+    renderCrumbs(data.cwd);
+
+    const dirs = data.entries.filter(e => e.dir).length;
+    const files = data.entries.length - dirs;
+    const total = data.entries.reduce((s, e) => s + (e.dir ? 0 : e.size), 0);
+    statsEl.textContent =
+      (dirs ? dirs + ' thư mục · ' : '') + files + ' file · ' + fmtSize(total);
+
+    if (!data.entries.length) {
+      listEl.innerHTML = '<div class="empty">📂 Thư mục trống.<br>Kéo &amp; thả file vào đây để chia sẻ.</div>';
+      return;
+    }
+
+    listEl.innerHTML = data.entries.map(e => {
+      const p = data.cwd ? data.cwd + '/' + e.name : e.name;
+      const name = e.dir
+        ? '<a class="name" href="#' + encodeURIComponent(p) + '">' + iconFor(e) + '<span>' + esc(e.name) + '</span></a>'
+        : '<a class="name" target="_blank" rel="noopener" href="' + fileUrl(p) + '&inline=1">' + iconFor(e) + '<span>' + esc(e.name) + '</span></a>';
+      const acts = [];
+      if (!e.dir) acts.push('<a class="ibtn" title="Tải về" download href="' + fileUrl(p) + '">⬇</a>');
+      if (!e.dir) acts.push('<button class="ibtn" title="Copy link chia sẻ" data-copy="' + esc(p) + '">🔗</button>');
+      if (!RO) acts.push('<button class="ibtn danger" title="Xóa" data-del="' + esc(p) + '" data-name="' + esc(e.name) + '">🗑</button>');
+      return '<div class="row">' + name +
+        '<span class="size">' + (e.dir ? '—' : fmtSize(e.size)) + '</span>' +
+        '<span class="mtime">' + fmtDate(e.mtime) + '</span>' +
+        '<span class="acts">' + acts.join('') + '</span></div>';
+    }).join('');
+  }
+
+  async function load() {
+    try {
+      const r = await fetch('/api/list?path=' + encodeURIComponent(cwd));
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      render(await r.json());
+    } catch {
+      listEl.innerHTML = '<div class="empty">⚠️ Không tải được danh sách file.</div>';
+    }
+  }
+
+  /* ---------- Điều hướng theo hash (#/thu-muc/con) ---------- */
+
+  function cwdFromHash() {
+    return decodeURIComponent(location.hash.replace(/^#\/?/, ''));
+  }
+  window.addEventListener('hashchange', () => { cwd = cwdFromHash(); load(); });
+
+  /* ---------- Copy link & xóa (event delegation) ---------- */
+
+  listEl.addEventListener('click', ev => {
+    const copyBtn = ev.target.closest('[data-copy]');
+    if (copyBtn) {
+      copyText(location.origin + fileUrl(copyBtn.dataset.copy));
+      return;
+    }
+    const delBtn = ev.target.closest('[data-del]');
+    if (delBtn && confirm('Xóa "' + delBtn.dataset.name + '"?')) {
+      fetch('/api/delete?path=' + encodeURIComponent(delBtn.dataset.del), { method: 'POST' })
+        .then(r => {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          toast('🗑 Đã xóa');
+          load();
+        })
+        .catch(() => toast('Xóa thất bại', true));
+    }
+  });
+
+  /* ---------- Upload ---------- */
+
+  btnUpload.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', () => { uploadFiles(fileInput.files); fileInput.value = ''; });
+
+  function uploadFiles(files) {
+    if (RO) { toast('Server chỉ đọc — không upload được', true); return; }
+    [...files].forEach(uploadOne);
+  }
+
+  function uploadOne(file) {
+    const t = progressToast(file.name);
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/upload?path=' + encodeURIComponent(cwd) + '&name=' + encodeURIComponent(file.name));
+    xhr.upload.addEventListener('progress', e => { if (e.lengthComputable) t.set(e.loaded, e.total); });
+    xhr.addEventListener('load', () => {
+      if (xhr.status === 200) { t.done(); load(); }
+      else {
+        let msg = 'Lỗi ' + xhr.status;
+        try { msg = JSON.parse(xhr.responseText).error || msg; } catch {}
+        t.fail(msg);
+      }
+    });
+    xhr.addEventListener('error', () => t.fail('Lỗi mạng'));
+    xhr.send(file);
+  }
+
+  /* ---------- Kéo & thả cả trang ---------- */
+
+  const overlay = $('#overlay');
+  let dragDepth = 0;
+  const hasFiles = e => e.dataTransfer && [...(e.dataTransfer.types || [])].includes('Files');
+
+  window.addEventListener('dragenter', e => {
+    if (hasFiles(e)) { dragDepth++; overlay.hidden = false; }
+  });
+  window.addEventListener('dragleave', () => {
+    if (dragDepth > 0 && --dragDepth === 0) overlay.hidden = true;
+  });
+  window.addEventListener('dragover', e => e.preventDefault());
+  window.addEventListener('drop', e => {
+    e.preventDefault();
+    dragDepth = 0;
+    overlay.hidden = true;
+    if (e.dataTransfer && e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files);
+  });
+
+  /* ---------- QR ---------- */
+
+  const qrModal = $('#qr-modal'), qrImg = $('#qr-img');
+  $('#btn-qr').addEventListener('click', () => {
+    const url = location.origin;
+    $('#qr-url').textContent = url;
+    $('#qr-copy').onclick = () => copyText(url);
+    qrImg.hidden = true;
+    qrImg.onload = () => { qrImg.hidden = false; };
+    qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=' + encodeURIComponent(url);
+    qrModal.hidden = false;
+  });
+  qrModal.addEventListener('click', e => { if (e.target === qrModal) qrModal.hidden = true; });
+  $('#qr-close').addEventListener('click', () => { qrModal.hidden = true; });
+
+  /* ---------- Khởi động ---------- */
+
+  $('#btn-refresh').addEventListener('click', load);
+  cwd = cwdFromHash();
+  load();
+})();
+</script>
+</body>
+</html>
