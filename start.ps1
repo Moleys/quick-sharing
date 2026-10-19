@@ -52,7 +52,6 @@ if (-not $up) {
   exit 1
 }
 Write-Host "  ✓ Server : http://localhost:$Port" -ForegroundColor Green
-Start-Process "http://localhost:$Port"
 
 # --- 2) Cloudflare Tunnel (link online) ---
 $cf = $null
@@ -60,12 +59,14 @@ $tunnelUrl = $null
 
 if ($NoTunnel) {
   Write-Host "  - Bỏ qua tunnel (-NoTunnel). Trang chỉ truy cập được trong mạng LAN." -ForegroundColor Yellow
+  Start-Process "http://localhost:$Port"
 }
 elseif (-not (Test-Path (Join-Path $dir "cloudflared.exe")) -and -not (Get-Command cloudflared -ErrorAction SilentlyContinue)) {
   Write-Host "  ✗ Không tìm thấy cloudflared — chưa có link online." -ForegroundColor Yellow
   Write-Host "    Tải cloudflared.exe về thư mục project, hoặc cài:" -ForegroundColor Yellow
   Write-Host "    winget install --id Cloudflare.cloudflared" -ForegroundColor Yellow
   Write-Host "    Sau đó chạy lại start.ps1." -ForegroundColor Yellow
+  Start-Process "http://localhost:$Port"   # fallback: mở local khi không có cloudflared
 }
 else {
   # Ưu tiên cloudflared.exe nằm ngay trong project, fallback ra PATH
@@ -103,9 +104,11 @@ else {
   if ($tunnelUrl) {
     Write-Host "  ✓ Online : $tunnelUrl" -ForegroundColor Green
     try { Set-Clipboard $tunnelUrl; Write-Host "    (Đã copy link vào clipboard)" } catch { }
+    Start-Process $tunnelUrl   # mở link Cloudflare thay vì link local
   }
   else {
     Write-Host "  ✗ Không lấy được link tunnel. Xem log: $errLog" -ForegroundColor Red
+    Start-Process "http://localhost:$Port"   # fallback: mở local khi không có link online
   }
 }
 

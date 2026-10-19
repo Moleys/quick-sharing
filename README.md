@@ -37,8 +37,9 @@ Công cụ chia sẻ file siêu nhanh: chạy 1 lệnh là có ngay trang web hi
    hoặc nháy đúp `start.bat`.
 
 Script sẽ:
-- mở server tại `http://localhost:3000` (tự mở trình duyệt),
-- tạo tunnel và in ra **link online** dạng `https://xxxx.trycloudflare.com` (tự copy vào clipboard).
+- mở server tại `http://localhost:3000`,
+- tạo tunnel và in ra **link online** dạng `https://xxxx.trycloudflare.com` (tự copy vào clipboard),
+- tự mở trình duyệt tại **link Cloudflare** (không mở link local).
 
 Gửi link đó cho ai đó — họ thấy ngay danh sách file để tải. Link tồn tại đến khi bạn tắt script (mỗi lần chạy sẽ có link mới).
 
